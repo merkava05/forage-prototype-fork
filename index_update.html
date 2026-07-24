@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f4ed" />
+  <title>Forage – Improved Interactive Prototype</title>
+  <style>
+    :root {
+      --ink: #1c211d;
+      --muted: #667068;
+      --green: #225c43;
+      --green-2: #174632;
+      --mint: #e4eee8;
+      --cream: #f7f4ed;
+      --paper: #fffdf8;
+      --line: #d9ded8;
+      --danger: #a12d2d;
+      --warning: #8a5b16;
+      --shadow: 0 20px 65px rgba(0,0,0,.22);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: #171a18; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: start center;
+      padding: 24px 12px 48px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(63,112,84,.35), transparent 35%),
+        linear-gradient(145deg, #111512, #252b27);
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 3px solid rgba(34,92,67,.32);
+      outline-offset: 2px;
+    }
+
+    .prototype-shell { width: min(100%, 430px); }
+    .prototype-note {
+      color: #bec6c0;
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-align: center;
+      margin: 0 0 10px;
+    }
+
+    .phone {
+      position: relative;
+      height: min(860px, calc(100vh - 72px));
+      min-height: 650px;
+      overflow: hidden;
+      border-radius: 34px;
+      background: var(--cream);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.2);
+    }
+
+    .status-bar {
+      position: absolute;
+      z-index: 20;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      font-size: 12px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .status-icons { display: flex; gap: 6px; align-items: center; }
+    .status-icons span { display: block; width: 13px; height: 8px; border-radius: 2px; background: var(--ink); }
+    .status-icons span:last-child { width: 19px; }
+
+    .app-screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--cream);
+    }
+    .app-screen[hidden] { display: none; }
+
+    .screen-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 60px 20px 110px;
+      scrollbar-width: none;
+    }
+    .screen-scroll::-webkit-scrollbar { display: none; }
+    .screen-scroll.with-header { padding-top: 106px; }
+
+    .topbar {
+      position: absolute;
+      z-index: 10;
+      top: 42px;
+      left: 0;
+      right: 0;
+      height: 58px;
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr) 76px;
+      align-items: center;
+      gap: 4px;
+      padding: 0 16px 0 10px;
+      background: rgba(247,244,237,.94);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(217,222,216,.8);
+    }
+    .topbar-title {
+      min-width: 0;
+      text-align: center;
+      font-weight: 750;
+      font-size: 16px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .topbar > :last-child { justify-self: end; }
+    .topbar .text-link { white-space: nowrap; padding-inline: 6px; }
+    .icon-button {
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      color: var(--ink);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+    }
+    .icon-button:hover { background: rgba(34,92,67,.08); }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: clamp(34px, 10vw, 48px); line-height: 1.02; letter-spacing: -.045em; margin-bottom: 14px; }
+    h2 { font-size: 29px; line-height: 1.08; letter-spacing: -.035em; margin-bottom: 10px; }
+    h3 { font-size: 18px; line-height: 1.2; margin-bottom: 6px; }
+    p { color: var(--muted); line-height: 1.5; }
+    .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--green); }
+    .small { font-size: 13px; }
+    .fine-print { font-size: 12px; line-height: 1.45; color: var(--muted); }
+
+    .brand { font-weight: 850; letter-spacing: -.04em; }
+    .brand::before { content: "✦"; color: var(--green); margin-right: 8px; }
+
+    .hero-screen { background: var(--paper); }
+    .hero-scroll { padding: 62px 20px 122px; }
+    .hero-photo {
+      height: 225px;
+      border-radius: 0 0 32px 32px;
+      margin: -62px -20px 24px;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.28)),
+        url('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=85') center/cover;
+      position: relative;
+    }
+    .hero-logo {
+      position: absolute;
+      left: 20px;
+      top: 62px;
+      color: white;
+      font-weight: 850;
+      font-size: 22px;
+      text-shadow: 0 1px 10px rgba(0,0,0,.35);
+    }
+    .hero-signin {
+      position: absolute;
+      right: 16px;
+      top: 54px;
+      min-height: 40px;
+      padding: 8px 14px;
+      border-radius: 13px;
+      border: 1px solid rgba(255,255,255,.75);
+      background: rgba(255,255,255,.92);
+      color: var(--green-2);
+      font-weight: 800;
+      box-shadow: 0 4px 16px rgba(0,0,0,.16);
+    }
+    .feature-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+      margin: 22px 0 8px;
+    }
+    .feature-mini {
+      min-height: 82px;
+      padding: 12px 10px;
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .feature-mini span { display: block; font-size: 20px; margin-bottom: 6px; }
+    .hero-screen h1 { font-size: clamp(36px, 10vw, 44px); }
+
+    .sticky-actions {
+      position: absolute;
+      z-index: 12;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 12px 20px calc(14px + env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, rgba(247,244,237,0), var(--cream) 20%);
+    }
+    .hero-screen .sticky-actions { background: linear-gradient(180deg, rgba(255,253,248,0), var(--paper) 20%); }
+
+    .btn {
+      width: 100%;
+      min-height: 52px;
+      border-radius: 16px;
+      border: 1px solid transparent;
+      padding: 13px 16px;
+      font-weight: 800;
+      transition: transform .12s ease, background .12s ease, opacity .12s ease;
+    }
+    .btn:active { transform: scale(.985); }
+    .btn:disabled { cursor: not-allowed; opacity: .45; transform: none; }
+    .btn-primary { background: var(--green); color: white; }
+    .btn-primary:hover { background: var(--green-2); }
+    .btn-secondary { background: white; color: var(--ink); border-color: var(--line); }
+    .btn-ghost { background: transparent; color: var(--green); }
+    .btn-danger { background: #fff2f2; border-color: #f1cccc; color: var(--danger); }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stack { display: grid; gap: 10px; }
+    .text-link { border: 0; background: none; color: var(--green); font-weight: 750; padding: 10px; }
+
+    .card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .card + .card { margin-top: 12px; }
+    .soft-card { background: var(--mint); border-color: transparent; }
+
+    .choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .choice {
+      min-height: 82px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: white;
+      padding: 13px;
+      text-align: left;
+      color: var(--ink);
+      position: relative;
+    }
+    .choice[aria-pressed="true"] { border: 2px solid var(--green); background: var(--mint); padding: 12px; }
+    .choice[aria-pressed="true"]::after {
+      content: "✓";
+      position: absolute;
+      right: 10px;
+      top: 9px;
+      width: 23px;
+      height: 23px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--green);
+      color: white;
+      font-weight: 900;
+      font-size: 13px;
+    }
+    .choice strong { display: block; padding-right: 22px; }
+    .choice span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+
+    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 24px 0 10px; }
+    .section-heading h3 { margin: 0; }
+
+    .progress-wrap { margin: 4px 0 22px; }
+    .progress-meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-bottom: 7px; }
+    .progress { height: 6px; border-radius: 999px; background: #dfe4df; overflow: hidden; }
+    .progress > span { display: block; height: 100%; border-radius: inherit; background: var(--green); }
+
+    .field { display: grid; gap: 7px; margin-bottom: 15px; }
+    .field label { font-size: 13px; font-weight: 780; }
+    .input-wrap { position: relative; }
+    .field input, .field select, .search-input {
+      width: 100%;
+      min-height: 50px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid #c9d0ca;
+      background: white;
+      color: var(--ink);
+    }
+    .field input[aria-invalid="true"] { border-color: var(--danger); background: #fffafa; }
+    .field-error { min-height: 18px; color: var(--danger); font-size: 12px; }
+    .password-toggle {
+      position: absolute;
+      right: 7px;
+      top: 7px;
+      min-width: 58px;
+      height: 36px;
+      border-radius: 10px;
+      border: 0;
+      background: var(--mint);
+      color: var(--green-2);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .password-input { padding-right: 72px !important; }
+    .requirements { display: grid; gap: 6px; margin-top: 8px; }
+    .requirement { font-size: 12px; color: var(--muted); }
+    .requirement.met { color: var(--green); font-weight: 700; }
+    .requirement::before { content: "○"; margin-right: 7px; }
+    .requirement.met::before { content: "✓"; }
+
+    .switch-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 15px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .switch-row:last-child { border-bottom: 0; }
+    .switch-copy strong { display: block; }
+    .switch-copy span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .switch {
+      width: 50px;
+      height: 30px;
+      border: 0;
+      border-radius: 999px;
+      padding: 3px;
+      background: #cbd1cc;
+    }
+    .switch::after { content: ""; display: block; width: 24px; height: 24px; border-radius: 50%; background: white; box-shadow: 0 1px 4px rgba(0,0,0,.22); transition: transform .18s ease; }
+    .switch[aria-pressed="true"] { background: var(--green); }
+    .switch[aria-pressed="true"]::after { transform: translateX(20px); }
+
+    .capture-zone {
+      min-height: 300px;
+      border: 1px dashed #99a79d;
+      border-radius: 24px;
+      background: #edf2ed;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 22px;
+      overflow: hidden;
+      position: relative;
+    }
+    .capture-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .capture-zone::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 58%, rgba(0,0,0,.58)); opacity: 0; }
+    .capture-zone.has-photo::after { opacity: 1; }
+    .capture-content { position: relative; z-index: 2; }
+    .capture-zone.has-photo .capture-content { align-self: end; color: white; }
+    .capture-zone.has-photo .capture-content p { color: rgba(255,255,255,.86); }
+    .capture-icon { font-size: 52px; margin-bottom: 10px; }
+    input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+    .ingredient-list { display: grid; gap: 9px; }
+    .ingredient-row {
+      display: grid;
+      grid-template-columns: 1fr 44px;
+      gap: 8px;
+      align-items: center;
+    }
+    .ingredient-row input { min-height: 46px; border: 1px solid var(--line); border-radius: 13px; padding: 10px 12px; background: white; }
+    .remove-ingredient { height: 44px; border-radius: 13px; border: 1px solid #ebcccc; background: #fff7f7; color: var(--danger); font-weight: 900; }
+    .add-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; }
+    .add-row input { min-height: 46px; border: 1px solid var(--line); border-radius: 13px; padding: 10px 12px; }
+    .add-row button { min-width: 78px; border: 0; border-radius: 13px; background: var(--mint); color: var(--green-2); font-weight: 800; }
+
+    .loading-card { text-align: center; padding: 42px 20px; }
+    .spinner { width: 48px; height: 48px; border-radius: 50%; border: 5px solid #d9e3dc; border-top-color: var(--green); animation: spin .85s linear infinite; margin: 0 auto 18px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .filter-row { display: flex; gap: 8px; overflow-x: auto; margin: 12px -20px 16px; padding: 0 20px 4px; scrollbar-width: none; }
+    .filter-row::-webkit-scrollbar { display: none; }
+    .filter-chip { flex: 0 0 auto; min-height: 40px; padding: 9px 13px; border-radius: 999px; border: 1px solid var(--line); background: white; color: var(--ink); font-weight: 700; font-size: 13px; }
+    .filter-chip[aria-pressed="true"] { background: var(--green); color: white; border-color: var(--green); }
+
+    .recipe-list { display: grid; gap: 14px; }
+    .recipe-card {
+      overflow: hidden;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: white;
+    }
+    .recipe-image-wrap { position: relative; height: 178px; background: #dde4df; }
+    .recipe-image { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .save-button {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      border: 0;
+      background: rgba(255,255,255,.94);
+      color: var(--green-2);
+      font-size: 22px;
+      box-shadow: 0 3px 15px rgba(0,0,0,.14);
+    }
+    .recipe-card-body { padding: 14px; }
+    .recipe-title-button { display: block; width: 100%; border: 0; background: none; text-align: left; padding: 0; color: var(--ink); }
+    .recipe-title-button h3 { margin-bottom: 9px; font-size: 20px; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 7px; }
+    .meta-pill { padding: 6px 8px; border-radius: 999px; background: #f0f3f0; color: #4f5b53; font-size: 11px; font-weight: 760; }
+    .match-pill { background: var(--mint); color: var(--green-2); }
+
+    .detail-hero { height: 260px; margin: -106px -20px 20px; position: relative; }
+    .detail-hero img { width: 100%; height: 100%; object-fit: cover; }
+    .detail-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.15), transparent 45%, rgba(0,0,0,.25)); }
+    .floating-back, .floating-save { position: absolute; z-index: 2; top: 54px; width: 44px; height: 44px; border: 0; border-radius: 14px; background: rgba(255,255,255,.94); font-size: 21px; }
+    .floating-back { left: 16px; }
+    .floating-save { right: 16px; }
+    .detail-section { margin-top: 24px; }
+    .check-list, .step-list { display: grid; gap: 10px; padding: 0; list-style: none; }
+    .check-list li { display: flex; gap: 10px; align-items: flex-start; }
+    .check-list li::before { content: "✓"; width: 22px; height: 22px; flex: 0 0 22px; border-radius: 50%; display: grid; place-items: center; background: var(--mint); color: var(--green); font-size: 12px; font-weight: 900; }
+    .check-list li.missing::before { content: "+"; background: #fff1df; color: var(--warning); }
+    .step-list { counter-reset: steps; }
+    .step-list li { counter-increment: steps; display: grid; grid-template-columns: 30px 1fr; gap: 10px; line-height: 1.45; }
+    .step-list li::before { content: counter(steps); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--green); color: white; font-size: 12px; font-weight: 850; }
+
+    .bottom-nav {
+      position: absolute;
+      z-index: 15;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: calc(76px + env(safe-area-inset-bottom));
+      padding: 8px 9px env(safe-area-inset-bottom);
+      background: rgba(255,253,248,.96);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+    }
+    .nav-item { border: 0; background: transparent; color: #68726b; border-radius: 13px; font-size: 10px; font-weight: 750; display: grid; place-items: center; align-content: center; gap: 4px; }
+    .nav-item span { font-size: 21px; line-height: 1; }
+    .nav-item[aria-current="page"] { color: var(--green); background: var(--mint); }
+
+    .empty-state { text-align: center; padding: 40px 16px 24px; }
+    .empty-state .empty-icon { font-size: 54px; margin-bottom: 12px; }
+    .empty-state .btn { margin-top: 9px; }
+
+    .profile-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--line); }
+    .profile-row:last-child { border-bottom: 0; }
+    .profile-label { font-size: 12px; color: var(--muted); }
+    .profile-value { margin-top: 4px; font-weight: 750; }
+    .account-status { display: grid; gap: 4px; padding: 14px 16px; margin-bottom: 10px; border-radius: 16px; background: var(--mint); }
+    .account-status strong { color: var(--green-2); }
+    .edit-button { border: 0; background: var(--mint); color: var(--green-2); min-height: 38px; padding: 8px 12px; border-radius: 12px; font-weight: 800; }
+
+    .plan { padding: 16px; border: 1px solid var(--line); border-radius: 18px; background: white; margin-bottom: 10px; }
+    .plan.selected { border: 2px solid var(--green); padding: 15px; }
+    .plan-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .plan-price { font-weight: 850; }
+    .free-plan { background: var(--mint); border-color: transparent; }
+
+    .toast {
+      position: absolute;
+      z-index: 50;
+      left: 20px;
+      right: 20px;
+      bottom: 96px;
+      padding: 13px 15px;
+      border-radius: 14px;
+      background: #17251c;
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0,0,0,.24);
+      opacity: 0;
+      transform: translateY(16px);
+      pointer-events: none;
+      transition: .2s ease;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-height: 700px) {
+      .phone { min-height: 600px; }
+      .hero-photo { height: 210px; }
+      .feature-mini { min-height: 80px; }
+    }
+    @media (max-width: 380px) {
+      .choice-grid { grid-template-columns: 1fr; }
+      .hero-signin {
+      position: absolute;
+      right: 16px;
+      top: 54px;
+      min-height: 40px;
+      padding: 8px 14px;
+      border-radius: 13px;
+      border: 1px solid rgba(255,255,255,.75);
+      background: rgba(255,255,255,.92);
+      color: var(--green-2);
+      font-weight: 800;
+      box-shadow: 0 4px 16px rgba(0,0,0,.16);
+    }
+    .feature-strip { grid-template-columns: 1fr; }
+      .feature-mini { min-height: auto; display: flex; align-items: center; gap: 10px; }
+      .feature-mini span { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="prototype-shell">
+    <p class="prototype-note">Forage · improved interactive prototype</p>
+    <div class="phone" id="app">
+      <div class="status-bar" aria-hidden="true">
+        <span>9:41</span>
+        <div class="status-icons"><span></span><span></span><span></span></div>
+      </div>
+
+      <!-- Landing: core value before account creation -->
+      <section class="app-screen hero-screen" id="landing" aria-labelledby="landing-title">
+        <div class="screen-scroll hero-scroll">
+          <div class="hero-photo"><div class="hero-logo">✦ Forage</div><button class="hero-signin" data-go="signin">Sign in</button></div>
+          <div class="eyebrow">Make more. Waste less.</div>
+          <h1 id="landing-title">Turn what you have into something delicious.</h1>
+          <p>Scan your fridge or enter ingredients manually. Forage finds recipes you can make now—no account required.</p>
+          <div class="feature-strip" aria-label="Key features">
+            <div class="feature-mini"><span>📷</span>Scan multiple ingredients</div>
+            <div class="feature-mini"><span>🥘</span>See useful recipe matches</div>
+            <div class="feature-mini"><span>🔖</span>Save favourites anytime</div>
+          </div>
+        </div>
+        <div class="sticky-actions stack">
+          <button class="btn btn-primary" data-go="capture">Scan ingredients as a guest</button>
+          <button class="btn btn-secondary" data-go="dietary">Personalize my recipes</button>
+        </div>
+      </section>
+
+      <!-- Optional personalization -->
+      <section class="app-screen" id="dietary" hidden aria-labelledby="dietary-title">
+        <header class="topbar"><button class="icon-button" data-back aria-label="Go back">‹</button><div class="topbar-title">Preferences</div><button class="text-link" type="button" data-pref-skip="cuisines">Skip</button></header>
+        <div class="screen-scroll with-header">
+          <div class="progress-wrap"><div class="progress-meta"><span>Step 1 of 3</span><span>Optional</span></div><div class="progress"><span style="width:33%"></span></div></div>
+          <h2 id="dietary-title">Any dietary needs?</h2>
+          <p>Select all that apply. Allergy choices help filter recipes, but always verify ingredient labels for serious allergies.</p>
+          <div class="choice-grid" id="dietary-choices"></div>
+        </div>
+        <div class="sticky-actions"><button class="btn btn-primary" type="button" data-pref-continue="cuisines">Continue</button></div>
+      </section>
+
+      <section class="app-screen" id="cuisines" hidden aria-labelledby="cuisines-title">
+        <header class="topbar"><button class="icon-button" data-back aria-label="Go back">‹</button><div class="topbar-title">Preferences</div><button class="text-link" type="button" data-pref-skip="experience">Skip</button></header>
+        <div class="screen-scroll with-header">
+          <div class="progress-wrap"><div class="progress-meta"><span>Step 2 of 3</span><span>Choose any number</span></div><div class="progress"><span style="width:66%"></span></div></div>
+          <h2 id="cuisines-title">What cuisines do you enjoy?</h2>
+          <p>Choose one, several, or select “No preference.” You can edit this later.</p>
+          <div class="choice-grid" id="cuisine-choices"></div>
+        </div>
+        <div class="sticky-actions"><button class="btn btn-primary" type="button" data-pref-continue="experience">Continue</button></div>
+      </section>
+
+      <section class="app-screen" id="experience" hidden aria-labelledby="experience-title">
+        <header class="topbar"><button class="icon-button" data-back aria-label="Go back">‹</button><div class="topbar-title">Preferences</div><button class="text-link" type="button" data-pref-skip="capture">Skip</button></header>
+        <div class="screen-scroll with-header">
+          <div class="progress-wrap"><div class="progress-meta"><span>Step 3 of 3</span><span>Optional</span></div><div class="progress"><span style="width:100%"></span></div></div>
+          <h2 id="experience-title">How comfortable are you cooking?</h2>
+          <p>This helps us tailor recipe complexity. Select an option, then continue when you are ready.</p>
+          <div class="stack" id="experience-choices"></div>
+        </div>
+        <div class="sticky-actions"><button class="btn btn-primary" type="button" data-pref-continue="capture">Start exploring</button></div>
+      </section>
+
+      <!-- Correct, separate sign-in route -->
+      <section class="app-screen" id="signin" hidden aria-labelledby="signin-title">
+        <header class="topbar"><button class="icon-button" data-back aria-label="Go back">‹</button><div class="topbar-title">Sign in</div><span></span></header>
+        <div class="screen-scroll with-header">
+          <h2 id="signin-title">Welcome back</h2>
+          <p>Sign in to sync saved recipes and preferences.</p>
+          <form id="signin-form" novalidate>
+            <div class="field"><label for="signin-email">Email address</label><input id="signin-email" type="email" autocomplete="email" required /><div class="field-error" id="signin-email-error"></div></div>
+            <div class="field"><label for="signin-password">Password</label><div class="input-wrap"><input class="password-input" id="signin-password" type="password" autocomplete="current-password" required /><button class="password-toggle" type="button" data-toggle-password="signin-password">Show</button></div><div class="field-error" id="signin-password-error"></div></div>
+            <button class="btn btn-primary" id="signin-submit" type="submit" disabled>Sign in</button>
+          </form>
+          <p class="small" style="text-align:center;margin-top:18px;">New to Forage? <button class="text-link" data-go="signup">Create an account</button></p>
+        </div>
+      </section>
+
+      <section class="app-screen" id="signup" hidden aria-labelledby="signup-title">
+        <header class="topbar"><button class="icon-button" data-back aria-label="Go back">‹</button><div class="topbar-title">Create account</div><button class="text-link" data-go="home">Not now</button></header>
+        <div class="screen-scroll with-header">
+          <h2 id="signup-title">Save your Forage progress</h2>
+          <p>Your guest recipes stay available. Create an account only when you want to sync across devices.</p>
+          <form id="signup-form" novalidate>
+            <div class="field"><label for="signup-email">Email address</label><input id="signup-email" type="email" autocomplete="email" required /><div class="field-error" id="signup-email-error"></div></div>
+            <div class="field">
+              <label for="signup-password">Password</label>
+              <div class="input-wrap"><input class="password-input" id="signup-password" type="password" autocomplete="new-password" required /><button class="password-toggle" type="button" data-toggle-password="signup-password">Show</button></div>
+              <div class="requirements" aria-live="polite">
+                <div class="requirement" data-rule="length">At least 8 characters</div>
+                <div class="requirement" data-rule="letter">At least one letter</div>
+                <div class="requirement" data-rule="number">At least one number</div>
+              </div>
+              <div class="field-error" id="signup-password-error"></div>
+            </div>
+            <div class="field"><label for="confirm-password">Confirm password</label><div class="input-wrap"><input class="password-input" id="confirm-password" type="password" autocomplete="new-password" required /><button class="password-toggle" type="button" data-toggle-password="confirm-password">Show</button></div><div class="field-error" id="confirm-password-error"></div></div>
+            <p class="fine-print">By creating an account, you agree to the Terms of Service and Privacy Policy.</p>
+            <button class="btn btn-primary" id="signup-submit" type="submit" disabled>Create account</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="app-screen" id="notifications" hidden aria-labelledby="notifications-title">
+        <header class="topbar"><button class="icon-button" data-back aria-label="Go back">‹</button><div class="topbar-title">Notifications</div><button class="text-link" data-go="home">Not now</button></header>
+        <div class="screen-scroll with-header">
+          <h2 id="notifications-title">Stay in the loop—your way</h2>
+          <p>Nothing is selected by default. Turn on only the updates you want.</p>
+          <div class="card" id="notification-options"></div>
+        </div>
+        <div class="sticky-actions"><button class="btn btn-primary" data-go="home">Save choices</button></div>
+      </section>
+
+      <!-- Capture and ingredient confirmation -->
+      <section class="app-screen" id="capture" hidden aria-labelledby="capture-title">
+        <header class="topbar"><button class="icon-button" data-back aria-label="Go back">‹</button><div class="topbar-title">Scan ingredients</div><button class="text-link" data-go="home">Cancel</button></header>
+        <div class="screen-scroll with-header">
+          <h2 id="capture-title">What is in your kitchen?</h2>
+          <p>Take one clear photo containing several ingredients, choose one from your library, or enter ingredients manually.</p>
+          <div class="capture-zone" id="capture-zone">
+            <img id="capture-preview" alt="Selected kitchen ingredients" hidden />
+            <div class="capture-content">
+              <div class="capture-icon">📷</div>
+              <h3 id="capture-status">Add a kitchen photo</h3>
+              <p class="small">You will review detected ingredients before recipes are generated.</p>
+            </div>
+          </div>
+          <input id="photo-input" type="file" accept="image/*" capture="environment" />
+          <div class="btn-row" style="margin-top:12px;">
+            <button class="btn btn-secondary" id="choose-photo">Choose photo</button>
+            <button class="btn btn-secondary" id="demo-photo">Use demo photo</button>
+          </div>
+          <button class="btn btn-ghost" id="manual-entry" style="margin-top:8px;">Enter ingredients manually</button>
+        </div>
+        <div class="sticky-actions"><button class="btn btn-primary" id="review-photo" disabled style="opacity:.45;">Review photo</button></div>
+      </section>
+
+      <section class="app-screen" id="scanning" hidden aria-labelledby="scanning-title">
+        <div class="screen-scroll" style="display:grid;place-items:center;">
+          <div class="card loading-card">
+            <div class="spinner" aria-hidden="true"></div>
+            <h2 id="scanning-title">Scanning your ingredients…</h2>
+            <p>Identifying multiple items so you can confirm them before recipe matching.</p>
+            <button class="btn btn-secondary" id="cancel-scan">Cancel scan</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-screen" id="ingredients" hidden aria-labelledby="ingredients-title">
+        <header class="topbar"><button class="icon-button" data-back aria-label="Go back">‹</button><div class="topbar-title">Review ingredients</div><button class="text-link" data-go="capture">Retake</button></header>
+        <div class="screen-scroll with-header">
+          <div class="eyebrow">Confirm before continuing</div>
+          <h2 id="ingredients-title">Did we get everything right?</h2>
+          <p>Edit names, remove incorrect items, or add anything the scan missed.</p>
+          <div class="ingredient-list" id="ingredient-list"></div>
+          <div class="add-row"><input id="new-ingredient" type="text" placeholder="Add another ingredient" aria-label="New ingredient" /><button id="add-ingredient">Add</button></div>
+        </div>
+        <div class="sticky-actions stack"><button class="btn btn-primary" id="generate-recipes">Find matching recipes</button><button class="btn btn-secondary" data-go="capture">Retake photo</button></div>
+      </section>
+
+      <section class="app-screen" id="matching" hidden aria-labelledby="matching-title">
+        <div class="screen-scroll" style="display:grid;place-items:center;">
+          <div class="card loading-card"><div class="spinner" aria-hidden="true"></div><h2 id="matching-title">Finding your best matches…</h2><p>Comparing your ingredients with recipes and dietary preferences.</p></div>
+        </div>
+      </section>
+
+      <!-- Functional results and details -->
+      <section class="app-screen" id="results" hidden aria-labelledby="results-title">
+        <header class="topbar"><button class="icon-button" data-back aria-label="Go back">‹</button><div class="topbar-title">Recipe matches</div><button class="text-link" data-go="ingredients">Edit</button></header>
+        <div class="screen-scroll with-header">
+          <h2 id="results-title">Recipes for what you have</h2>
+          <p id="results-summary">Matches are based on your confirmed ingredients.</p>
+          <div class="filter-row" aria-label="Recipe filters">
+            <button class="filter-chip" aria-pressed="true" data-filter="all">Best match</button>
+            <button class="filter-chip" aria-pressed="false" data-filter="quick">Under 30 min</button>
+            <button class="filter-chip" aria-pressed="false" data-filter="lowcal">Under 500 cal</button>
+            <button class="filter-chip" aria-pressed="false" data-filter="complete">Fewest missing</button>
+          </div>
+          <div class="recipe-list" id="recipe-results"></div>
+        </div>
+        <nav class="bottom-nav" data-nav></nav>
+      </section>
+
+      <section class="app-screen" id="recipe-detail" hidden aria-labelledby="recipe-title">
+        <div class="screen-scroll" id="recipe-detail-content"></div>
+      </section>
+
+      <!-- Main app -->
+      <section class="app-screen" id="home" hidden aria-labelledby="home-title">
+        <div class="screen-scroll">
+          <div class="eyebrow">Good morning</div>
+          <h2 id="home-title">What is in your kitchen?</h2>
+          <label class="field" style="margin-bottom:0;"><span class="small" style="font-weight:780;">Search recipes or ingredients</span><input class="search-input" id="home-search" type="search" placeholder="Try “pasta” or “tomato”" /></label>
+          <div id="home-content"></div>
+        </div>
+        <nav class="bottom-nav" data-nav></nav>
+      </section>
+
+      <section class="app-screen" id="explore" hidden aria-labelledby="explore-title">
+        <div class="screen-scroll">
+          <div class="eyebrow">Browse all recipes</div>
+          <h2 id="explore-title">Explore</h2>
+          <input class="search-input" id="explore-search" type="search" placeholder="Search recipes or ingredients" aria-label="Search recipes or ingredients" />
+          <div class="filter-row"><button class="filter-chip" aria-pressed="true" data-explore-filter="all">All</button><button class="filter-chip" aria-pressed="false" data-explore-filter="quick">Quick</button><button class="filter-chip" aria-pressed="false" data-explore-filter="vegetarian">Vegetarian</button></div>
+          <div class="recipe-list" id="explore-list"></div>
+        </div>
+        <nav class="bottom-nav" data-nav></nav>
+      </section>
+
+      <section class="app-screen" id="saved" hidden aria-labelledby="saved-title">
+        <div class="screen-scroll">
+          <div class="eyebrow">Your collection</div>
+          <h2 id="saved-title">Saved recipes</h2>
+          <div id="saved-content"></div>
+        </div>
+        <nav class="bottom-nav" data-nav></nav>
+      </section>
+
+      <section class="app-screen" id="profile" hidden aria-labelledby="profile-title">
+        <div class="screen-scroll">
+          <div class="eyebrow">Preferences and account</div>
+          <h2 id="profile-title">Your profile</h2>
+          <div class="card">
+            <div class="profile-row"><div><div class="profile-label">Cooking level</div><div class="profile-value" id="profile-experience">Not selected</div></div><button class="edit-button" type="button" data-edit-preference="experience">Edit</button></div>
+            <div class="profile-row"><div><div class="profile-label">Dietary preferences</div><div class="profile-value" id="profile-dietary">None selected</div></div><button class="edit-button" type="button" data-edit-preference="dietary">Edit</button></div>
+            <div class="profile-row"><div><div class="profile-label">Favourite cuisines</div><div class="profile-value" id="profile-cuisines">No preference</div></div><button class="edit-button" type="button" data-edit-preference="cuisines">Edit</button></div>
+            <div class="profile-row"><div><div class="profile-label">Recipe updates</div><div class="profile-value">Manage notification choices</div></div><button class="edit-button" data-go="notifications">Edit</button></div>
+          </div>
+          <div class="section-heading"><h3>Account</h3></div>
+          <div id="profile-account"></div>
+        </div>
+        <nav class="bottom-nav" data-nav></nav>
+      </section>
+
+      <!-- Premium is optional and shown after core value -->
+      <section class="app-screen" id="premium" hidden aria-labelledby="premium-title">
+        <header class="topbar"><button class="icon-button" data-back aria-label="Go back">‹</button><div class="topbar-title">Forage Plus</div><span></span></header>
+        <div class="screen-scroll with-header">
+          <div class="eyebrow">Optional upgrade</div>
+          <h2 id="premium-title">Get more from your kitchen</h2>
+          <p>Keep using core scanning, matching, recipe details, and saved recipes for free.</p>
+          <div class="plan free-plan"><div class="plan-top"><div><h3>Free</h3><p class="small">5 scans per month, recipe details, basic filters, saved recipes</p></div><div class="plan-price">$0</div></div></div>
+          <div class="plan selected"><div class="plan-top"><div><h3>Annual Plus</h3><p class="small">Unlimited scans, advanced filters, meal planning, and priority features</p></div><div class="plan-price">$4.57/mo</div></div><p class="fine-print">$54.84 billed annually after a 7-day free trial. Cancel before the trial ends to avoid a charge.</p></div>
+          <div class="plan"><div class="plan-top"><div><h3>Monthly Plus</h3><p class="small">All Plus features with monthly billing</p></div><div class="plan-price">$11.49/mo</div></div></div>
+          <button class="btn btn-primary" id="start-trial">Start 7-day free trial</button>
+          <button class="btn btn-secondary" data-go="profile" style="margin-top:10px;">Continue with Free</button>
+        </div>
+      </section>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+  </main>
+
+<script>
+(() => {
+  'use strict';
+
+  const screens = [...document.querySelectorAll('.app-screen')];
+  const historyStack = [];
+  let currentScreen = 'landing';
+  let scanTimer = null;
+  let activeRecipeId = null;
+  let resultFilter = 'all';
+  let exploreFilter = 'all';
+  let preferenceMode = 'onboarding';
+  let preferenceSnapshot = null;
+
+  const state = {
+    dietary: JSON.parse(localStorage.getItem('forage-dietary') || '[]'),
+    cuisines: JSON.parse(localStorage.getItem('forage-cuisines') || '[]'),
+    experience: localStorage.getItem('forage-experience') || '',
+    notifications: JSON.parse(localStorage.getItem('forage-notifications') || '{}'),
+    ingredients: JSON.parse(localStorage.getItem('forage-ingredients') || '[]'),
+    saved: new Set(JSON.parse(localStorage.getItem('forage-saved') || '[]')),
+    accountEmail: localStorage.getItem('forage-account-email') || ''
+  };
+
+  const dietaryOptions = [
+    ['No restrictions', 'Show me all suitable recipes'],
+    ['Vegetarian', 'No meat or fish'],
+    ['Vegan', 'No animal products'],
+    ['Gluten-free', 'Avoid gluten-containing ingredients'],
+    ['Dairy-free', 'Avoid milk-based ingredients'],
+    ['Nut allergy', 'Exclude peanuts and tree nuts'],
+    ['Halal', 'Show halal-suitable options'],
+    ['Low-carb', 'Prioritize lower-carbohydrate recipes']
+  ];
+
+  const cuisineOptions = [
+    ['No preference', 'Keep recommendations broad'],
+    ['Italian', 'Pasta, risotto, and more'],
+    ['Chinese', 'Regional Chinese dishes'],
+    ['Japanese', 'Japanese home cooking'],
+    ['Korean', 'Korean favourites'],
+    ['Thai', 'Bright, aromatic dishes'],
+    ['Mexican', 'Tacos, bowls, and salsas'],
+    ['Mediterranean', 'Vegetables, grains, and herbs']
+  ];
+
+  const experienceOptions = [
+    ['Beginner', 'I prefer clear steps and familiar techniques.'],
+    ['Intermediate', 'I am comfortable with common cooking methods.'],
+    ['Experienced home cook', 'I enjoy multi-step recipes and adapting dishes.'],
+    ['Professional', 'I am comfortable with advanced techniques and timing.']
+  ];
+
+  const notificationOptions = [
+    ['Recipe ideas', 'Weekly email with recipes based on your preferences'],
+    ['New features', 'Occasional email about meaningful product updates'],
+    ['Weekly challenge', 'One optional push notification each week'],
+    ['Partner offers', 'Occasional promotional emails from selected partners']
+  ];
+
+  const recipes = [
+    {
+      id: 'tomato-chickpea-pasta',
+      title: 'Tomato Chickpea Pasta',
+      image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=900&q=85',
+      minutes: 25,
+      calories: 480,
+      cuisine: 'Italian',
+      vegetarian: true,
+      ingredients: ['Pasta', 'Tomatoes', 'Chickpeas', 'Garlic', 'Olive oil', 'Parmesan'],
+      steps: ['Boil the pasta until just tender, reserving a cup of cooking water.', 'Warm olive oil and garlic in a large pan until fragrant.', 'Add tomatoes and chickpeas, then simmer for 8–10 minutes.', 'Toss with pasta, loosening the sauce with cooking water as needed.', 'Finish with Parmesan and black pepper.'],
+      description: 'A bright, pantry-friendly pasta with creamy chickpeas and a quick tomato sauce.'
+    },
+    {
+      id: 'spinach-frittata',
+      title: 'Spinach and Tomato Frittata',
+      image: 'https://images.unsplash.com/photo-1565299507177-b0ac66763828?auto=format&fit=crop&w=900&q=85',
+      minutes: 22,
+      calories: 360,
+      cuisine: 'Mediterranean',
+      vegetarian: true,
+      ingredients: ['Eggs', 'Spinach', 'Tomatoes', 'Onion', 'Feta', 'Olive oil'],
+      steps: ['Whisk the eggs with a pinch of salt and pepper.', 'Sauté onion, spinach, and tomatoes in an oven-safe pan.', 'Pour in the eggs and cook until the edges begin to set.', 'Top with feta and broil until puffed and lightly golden.', 'Rest for 3 minutes before slicing.'],
+      description: 'A flexible, protein-rich meal that works for breakfast, lunch, or dinner.'
+    },
+    {
+      id: 'chickpea-curry',
+      title: 'Quick Chickpea and Spinach Curry',
+      image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=85',
+      minutes: 30,
+      calories: 430,
+      cuisine: 'South Asian',
+      vegetarian: true,
+      ingredients: ['Chickpeas', 'Spinach', 'Tomatoes', 'Onion', 'Garlic', 'Coconut milk', 'Curry powder'],
+      steps: ['Cook onion in oil until soft.', 'Add garlic and curry powder, stirring for 30 seconds.', 'Add tomatoes, chickpeas, and coconut milk.', 'Simmer until slightly thickened, about 12 minutes.', 'Fold in spinach and serve when wilted.'],
+      description: 'A comforting one-pan curry with pantry staples and tender greens.'
+    },
+    {
+      id: 'vegetable-grain-bowl',
+      title: 'Roasted Vegetable Grain Bowl',
+      image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=85',
+      minutes: 38,
+      calories: 520,
+      cuisine: 'Mediterranean',
+      vegetarian: true,
+      ingredients: ['Spinach', 'Tomatoes', 'Chickpeas', 'Quinoa', 'Cucumber', 'Lemon', 'Tahini'],
+      steps: ['Cook quinoa according to package directions.', 'Roast tomatoes and chickpeas until browned at the edges.', 'Whisk tahini, lemon, water, and salt into a dressing.', 'Layer quinoa, spinach, cucumber, tomatoes, and chickpeas.', 'Drizzle with dressing and serve.'],
+      description: 'A colourful, make-ahead bowl with roasted vegetables and lemon-tahini dressing.'
+    },
+    {
+      id: 'garlic-tomato-toast',
+      title: 'Garlic Tomato Toasts',
+      image: 'https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?auto=format&fit=crop&w=900&q=85',
+      minutes: 15,
+      calories: 290,
+      cuisine: 'Italian',
+      vegetarian: true,
+      ingredients: ['Bread', 'Tomatoes', 'Garlic', 'Olive oil', 'Basil'],
+      steps: ['Toast bread until crisp.', 'Rub each toast lightly with a cut garlic clove.', 'Toss chopped tomatoes with olive oil and salt.', 'Spoon tomatoes over toast and finish with basil.'],
+      description: 'Fast, crisp toasts topped with juicy tomatoes, garlic, and herbs.'
+    }
+  ];
+
+  function normalize(value) { return value.trim().toLowerCase(); }
+  function saveState() {
+    localStorage.setItem('forage-dietary', JSON.stringify(state.dietary));
+    localStorage.setItem('forage-cuisines', JSON.stringify(state.cuisines));
+    localStorage.setItem('forage-experience', state.experience);
+    localStorage.setItem('forage-notifications', JSON.stringify(state.notifications));
+    localStorage.setItem('forage-ingredients', JSON.stringify(state.ingredients));
+    localStorage.setItem('forage-saved', JSON.stringify([...state.saved]));
+    if (state.accountEmail) localStorage.setItem('forage-account-email', state.accountEmail);
+    else localStorage.removeItem('forage-account-email');
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function navigate(id, options = {}) {
+    if (!document.getElementById(id)) return;
+    if (options.push !== false && currentScreen !== id) historyStack.push(currentScreen);
+    currentScreen = id;
+    screens.forEach(screen => screen.hidden = screen.id !== id);
+    document.querySelectorAll('[data-nav]').forEach(renderNav);
+    document.getElementById(id).querySelector('.screen-scroll')?.scrollTo(0, 0);
+    if (id === 'home') renderHome();
+    if (id === 'results') renderResults();
+    if (id === 'explore') renderExplore();
+    if (id === 'saved') renderSaved();
+    if (id === 'profile') renderProfile();
+    if (['dietary', 'cuisines', 'experience'].includes(id)) updatePreferenceScreen(id);
+    syncAccountUI();
+  }
+
+  function goBack() {
+    const previous = historyStack.pop() || 'landing';
+    navigate(previous, { push: false });
+  }
+
+  function renderNav(nav) {
+    const items = [
+      ['home','⌂','Home'], ['explore','◫','Explore'], ['capture','＋','Scan'], ['saved','♡','Saved'], ['profile','○','Profile']
+    ];
+    nav.innerHTML = items.map(([id, icon, label]) => `<button class="nav-item" data-go="${id}" ${currentScreen === id ? 'aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${label}</button>`).join('');
+  }
+
+  const preferenceKeys = { dietary: 'dietary', cuisines: 'cuisines', experience: 'experience' };
+
+  function clonePreferenceValue(value) {
+    return Array.isArray(value) ? [...value] : value;
+  }
+
+  function startPreferenceOnboarding() {
+    preferenceMode = 'onboarding';
+    preferenceSnapshot = null;
+    navigate('dietary');
+  }
+
+  function startPreferenceEdit(screenId) {
+    const key = preferenceKeys[screenId];
+    preferenceMode = 'edit';
+    preferenceSnapshot = { screenId, key, value: clonePreferenceValue(state[key]) };
+    navigate(screenId);
+  }
+
+  function finishPreferenceEdit() {
+    preferenceMode = 'onboarding';
+    preferenceSnapshot = null;
+    saveState();
+    renderProfile();
+    showToast('Preference updated.');
+    if (historyStack[historyStack.length - 1] === 'profile') historyStack.pop();
+    navigate('profile', { push: false });
+  }
+
+  function cancelPreferenceEdit() {
+    if (preferenceSnapshot) {
+      state[preferenceSnapshot.key] = clonePreferenceValue(preferenceSnapshot.value);
+      saveState();
+      if (preferenceSnapshot.screenId === 'dietary') buildChoices('dietary-choices', dietaryOptions, 'dietary');
+      if (preferenceSnapshot.screenId === 'cuisines') buildChoices('cuisine-choices', cuisineOptions, 'cuisines');
+      if (preferenceSnapshot.screenId === 'experience') buildChoices('experience-choices', experienceOptions, 'experience', true);
+    }
+    preferenceMode = 'onboarding';
+    preferenceSnapshot = null;
+    renderProfile();
+    if (historyStack[historyStack.length - 1] === 'profile') historyStack.pop();
+    navigate('profile', { push: false });
+  }
+
+  function updatePreferenceScreen(screenId) {
+    const screen = document.getElementById(screenId);
+    const skipButton = screen.querySelector('[data-pref-skip]');
+    const continueButton = screen.querySelector('[data-pref-continue]');
+    if (!skipButton || !continueButton) return;
+    if (preferenceMode === 'edit') {
+      skipButton.textContent = 'Cancel';
+      continueButton.textContent = 'Save changes';
+    } else {
+      skipButton.textContent = 'Skip';
+      continueButton.textContent = screenId === 'experience' ? 'Start exploring' : 'Continue';
+    }
+  }
+
+  function buildChoices(containerId, options, stateKey, single = false) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    options.forEach(([label, description]) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'choice';
+      const selected = single ? state[stateKey] === label : state[stateKey].includes(label);
+      button.setAttribute('aria-pressed', String(selected));
+      button.innerHTML = `<strong>${label}</strong><span>${description}</span>`;
+      button.addEventListener('click', () => {
+        if (single) {
+          state[stateKey] = label;
+          [...container.children].forEach(child => child.setAttribute('aria-pressed', 'false'));
+          button.setAttribute('aria-pressed', 'true');
+        } else {
+          if (label === 'No restrictions' || label === 'No preference') {
+            state[stateKey] = button.getAttribute('aria-pressed') === 'true' ? [] : [label];
+          } else {
+            state[stateKey] = state[stateKey].filter(item => item !== 'No restrictions' && item !== 'No preference');
+            const index = state[stateKey].indexOf(label);
+            if (index >= 0) state[stateKey].splice(index, 1); else state[stateKey].push(label);
+          }
+          [...container.children].forEach((child, index) => child.setAttribute('aria-pressed', String(state[stateKey].includes(options[index][0]))));
+        }
+        saveState();
+      });
+      container.appendChild(button);
+    });
+  }
+
+  buildChoices('dietary-choices', dietaryOptions, 'dietary');
+  buildChoices('cuisine-choices', cuisineOptions, 'cuisines');
+  buildChoices('experience-choices', experienceOptions, 'experience', true);
+
+  function buildNotifications() {
+    const container = document.getElementById('notification-options');
+    container.innerHTML = '';
+    notificationOptions.forEach(([label, description]) => {
+      const row = document.createElement('div');
+      row.className = 'switch-row';
+      row.innerHTML = `<div class="switch-copy"><strong>${label}</strong><span>${description}</span></div><button class="switch" type="button" aria-label="${label}" aria-pressed="${state.notifications[label] === true}"></button>`;
+      const toggle = row.querySelector('.switch');
+      toggle.addEventListener('click', () => {
+        const next = toggle.getAttribute('aria-pressed') !== 'true';
+        toggle.setAttribute('aria-pressed', String(next));
+        state.notifications[label] = next;
+        saveState();
+      });
+      container.appendChild(row);
+    });
+  }
+  buildNotifications();
+
+  document.addEventListener('click', event => {
+    const signOut = event.target.closest('[data-sign-out]');
+    if (signOut) {
+      state.accountEmail = '';
+      saveState();
+      historyStack.length = 0;
+      document.getElementById('signin-form')?.reset();
+      document.getElementById('signup-form')?.reset();
+      document.getElementById('signin-email-error').textContent = '';
+      document.getElementById('signin-password-error').textContent = '';
+      document.getElementById('signup-email-error').textContent = '';
+      document.getElementById('signup-password-error').textContent = '';
+      document.getElementById('confirm-password-error').textContent = '';
+      syncAccountUI();
+      renderCurrentRecipeLists();
+      navigate('landing', { push: false });
+      showToast('You have signed out.');
+      return;
+    }
+
+    const editPreference = event.target.closest('[data-edit-preference]');
+    if (editPreference) {
+      startPreferenceEdit(editPreference.dataset.editPreference);
+      return;
+    }
+
+    const preferenceSkip = event.target.closest('[data-pref-skip]');
+    if (preferenceSkip) {
+      if (preferenceMode === 'edit') cancelPreferenceEdit();
+      else navigate(preferenceSkip.dataset.prefSkip);
+      return;
+    }
+
+    const preferenceContinue = event.target.closest('[data-pref-continue]');
+    if (preferenceContinue) {
+      if (preferenceMode === 'edit') finishPreferenceEdit();
+      else navigate(preferenceContinue.dataset.prefContinue);
+      return;
+    }
+
+    const go = event.target.closest('[data-go]');
+    if (go) {
+      if (go.dataset.go === 'dietary' && go.closest('#landing')) startPreferenceOnboarding();
+      else navigate(go.dataset.go);
+    }
+    if (event.target.closest('[data-back]')) {
+      if (preferenceMode === 'edit' && ['dietary', 'cuisines', 'experience'].includes(currentScreen)) cancelPreferenceEdit();
+      else goBack();
+    }
+  });
+
+  document.querySelectorAll('[data-toggle-password]').forEach(button => {
+    button.addEventListener('click', () => {
+      const input = document.getElementById(button.dataset.togglePassword);
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      button.textContent = show ? 'Hide' : 'Show';
+      button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    });
+  });
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  function setError(input, errorElement, message) {
+    input.setAttribute('aria-invalid', String(Boolean(message)));
+    errorElement.textContent = message;
+  }
+
+  function validateEmailField(input, errorElement, { showEmpty = false } = {}) {
+    const value = input.value.trim();
+    let message = '';
+    if (!value && showEmpty) message = 'Enter your email address.';
+    else if (value && !emailPattern.test(value)) message = 'Enter a valid email address.';
+    setError(input, errorElement, message);
+    return Boolean(value && emailPattern.test(value));
+  }
+
+  function watchEmailField(input, errorElement, updateForm) {
+    let touched = false;
+    input.addEventListener('blur', () => {
+      touched = true;
+      validateEmailField(input, errorElement, { showEmpty: true });
+      updateForm();
+    });
+    input.addEventListener('input', () => {
+      if (touched || errorElement.textContent) validateEmailField(input, errorElement);
+      updateForm();
+    });
+  }
+
+  const signupEmail = document.getElementById('signup-email');
+  const signupPassword = document.getElementById('signup-password');
+  const confirmPassword = document.getElementById('confirm-password');
+  const signupEmailError = document.getElementById('signup-email-error');
+  const signupPasswordError = document.getElementById('signup-password-error');
+  const confirmPasswordError = document.getElementById('confirm-password-error');
+  const signupSubmit = document.getElementById('signup-submit');
+  let confirmTouched = false;
+
+  function passwordRules(value) {
+    return { length: value.length >= 8, letter: /[A-Za-z]/.test(value), number: /\d/.test(value) };
+  }
+
+  function updatePasswordRules() {
+    const rules = passwordRules(signupPassword.value);
+    document.querySelectorAll('[data-rule]').forEach(item => item.classList.toggle('met', rules[item.dataset.rule]));
+    return Object.values(rules).every(Boolean);
+  }
+
+  function validatePasswordMatch({ showEmpty = false } = {}) {
+    let message = '';
+    if (!confirmPassword.value && showEmpty) message = 'Confirm your password.';
+    else if (confirmPassword.value && confirmPassword.value !== signupPassword.value) message = 'Passwords do not match.';
+    setError(confirmPassword, confirmPasswordError, message);
+    return Boolean(confirmPassword.value && confirmPassword.value === signupPassword.value);
+  }
+
+  function updateSignupFormState() {
+    const emailValid = Boolean(signupEmail.value.trim() && emailPattern.test(signupEmail.value.trim()));
+    const passwordValid = updatePasswordRules();
+    const matchValid = Boolean(confirmPassword.value && confirmPassword.value === signupPassword.value);
+    signupSubmit.disabled = !(emailValid && passwordValid && matchValid);
+  }
+
+  watchEmailField(signupEmail, signupEmailError, updateSignupFormState);
+  signupPassword.addEventListener('input', () => {
+    setError(signupPassword, signupPasswordError, '');
+    if (confirmTouched || confirmPassword.value) validatePasswordMatch();
+    updateSignupFormState();
+  });
+  signupPassword.addEventListener('blur', () => {
+    setError(signupPassword, signupPasswordError, updatePasswordRules() ? '' : 'Your password does not yet meet all requirements.');
+    updateSignupFormState();
+  });
+  confirmPassword.addEventListener('blur', () => {
+    confirmTouched = true;
+    validatePasswordMatch({ showEmpty: true });
+    updateSignupFormState();
+  });
+  confirmPassword.addEventListener('input', () => {
+    if (confirmTouched || confirmPassword.value) validatePasswordMatch();
+    updateSignupFormState();
+  });
+
+  document.getElementById('signup-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const emailValid = validateEmailField(signupEmail, signupEmailError, { showEmpty: true });
+    const passwordValid = updatePasswordRules();
+    setError(signupPassword, signupPasswordError, passwordValid ? '' : 'Your password does not yet meet all requirements.');
+    confirmTouched = true;
+    const matchValid = validatePasswordMatch({ showEmpty: true });
+    updateSignupFormState();
+    if (!emailValid || !passwordValid || !matchValid) return;
+    state.accountEmail = signupEmail.value.trim();
+    saveState();
+    syncAccountUI();
+    showToast('Account created. Your guest progress is saved.');
+    navigate('notifications');
+  });
+
+  const signinEmail = document.getElementById('signin-email');
+  const signinPassword = document.getElementById('signin-password');
+  const signinEmailError = document.getElementById('signin-email-error');
+  const signinPasswordError = document.getElementById('signin-password-error');
+  const signinSubmit = document.getElementById('signin-submit');
+  let signinPasswordTouched = false;
+
+  function updateSigninFormState() {
+    signinSubmit.disabled = !(emailPattern.test(signinEmail.value.trim()) && signinPassword.value);
+  }
+
+  watchEmailField(signinEmail, signinEmailError, updateSigninFormState);
+  signinPassword.addEventListener('blur', () => {
+    signinPasswordTouched = true;
+    setError(signinPassword, signinPasswordError, signinPassword.value ? '' : 'Enter your password.');
+    updateSigninFormState();
+  });
+  signinPassword.addEventListener('input', () => {
+    if (signinPasswordTouched || signinPasswordError.textContent) setError(signinPassword, signinPasswordError, signinPassword.value ? '' : 'Enter your password.');
+    updateSigninFormState();
+  });
+
+  document.getElementById('signin-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const emailValid = validateEmailField(signinEmail, signinEmailError, { showEmpty: true });
+    setError(signinPassword, signinPasswordError, signinPassword.value ? '' : 'Enter your password.');
+    updateSigninFormState();
+    if (!emailValid || !signinPassword.value) return;
+    state.accountEmail = signinEmail.value.trim();
+    saveState();
+    syncAccountUI();
+    showToast('Signed in for this prototype.');
+    navigate('home');
+  });
+
+  const photoInput = document.getElementById('photo-input');
+  const preview = document.getElementById('capture-preview');
+  const captureZone = document.getElementById('capture-zone');
+  const reviewPhoto = document.getElementById('review-photo');
+  document.getElementById('choose-photo').addEventListener('click', () => photoInput.click());
+  photoInput.addEventListener('change', () => {
+    const file = photoInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setPhoto(reader.result);
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('demo-photo').addEventListener('click', () => setPhoto('https://images.unsplash.com/photo-1543168256-418811576931?auto=format&fit=crop&w=900&q=85'));
+  function setPhoto(src) {
+    preview.src = src;
+    preview.hidden = false;
+    captureZone.classList.add('has-photo');
+    document.getElementById('capture-status').textContent = 'Photo ready to review';
+    reviewPhoto.disabled = false;
+    reviewPhoto.style.opacity = '1';
+  }
+
+  function beginScan() {
+    navigate('scanning');
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(() => {
+      state.ingredients = ['Tomatoes', 'Eggs', 'Spinach', 'Pasta', 'Chickpeas', 'Garlic'];
+      saveState();
+      renderIngredients();
+      navigate('ingredients');
+    }, 1100);
+  }
+  reviewPhoto.addEventListener('click', beginScan);
+  document.getElementById('cancel-scan').addEventListener('click', () => { clearTimeout(scanTimer); goBack(); });
+  document.getElementById('manual-entry').addEventListener('click', () => {
+    state.ingredients = state.ingredients.length ? state.ingredients : [''];
+    renderIngredients();
+    navigate('ingredients');
+  });
+
+  function renderIngredients() {
+    const list = document.getElementById('ingredient-list');
+    list.innerHTML = '';
+    state.ingredients.forEach((ingredient, index) => {
+      const row = document.createElement('div');
+      row.className = 'ingredient-row';
+      row.innerHTML = `<input type="text" value="${escapeHtml(ingredient)}" aria-label="Ingredient ${index + 1}" /><button class="remove-ingredient" aria-label="Remove ${escapeHtml(ingredient || 'ingredient')}">×</button>`;
+      const input = row.querySelector('input');
+      input.addEventListener('input', () => { state.ingredients[index] = input.value; saveState(); });
+      row.querySelector('button').addEventListener('click', () => { state.ingredients.splice(index, 1); saveState(); renderIngredients(); });
+      list.appendChild(row);
+    });
+  }
+
+  function addIngredient() {
+    const input = document.getElementById('new-ingredient');
+    const value = input.value.trim();
+    if (!value) return;
+    state.ingredients.push(value);
+    input.value = '';
+    saveState();
+    renderIngredients();
+  }
+  document.getElementById('add-ingredient').addEventListener('click', addIngredient);
+  document.getElementById('new-ingredient').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); addIngredient(); } });
+
+  document.getElementById('generate-recipes').addEventListener('click', () => {
+    state.ingredients = state.ingredients.map(item => item.trim()).filter(Boolean);
+    if (!state.ingredients.length) { showToast('Add at least one ingredient first.'); return; }
+    saveState();
+    navigate('matching');
+    setTimeout(() => { renderResults(); navigate('results'); }, 900);
+  });
+
+  function recipeStats(recipe) {
+    const available = new Set(state.ingredients.map(normalize));
+    const matched = recipe.ingredients.filter(item => available.has(normalize(item)));
+    const missing = recipe.ingredients.filter(item => !available.has(normalize(item)));
+    return { matched, missing, percent: Math.round((matched.length / recipe.ingredients.length) * 100) };
+  }
+
+  function sortedResults() {
+    let list = recipes.map(recipe => ({ recipe, stats: recipeStats(recipe) }));
+    if (resultFilter === 'quick') list = list.filter(item => item.recipe.minutes <= 30);
+    if (resultFilter === 'lowcal') list = list.filter(item => item.recipe.calories < 500);
+    if (resultFilter === 'complete') list.sort((a,b) => a.stats.missing.length - b.stats.missing.length || b.stats.percent - a.stats.percent);
+    else list.sort((a,b) => b.stats.percent - a.stats.percent || a.recipe.minutes - b.recipe.minutes);
+    return list;
+  }
+
+  function recipeCard(recipe, stats = recipeStats(recipe)) {
+    const saved = state.saved.has(recipe.id);
+    return `<article class="recipe-card">
+      <div class="recipe-image-wrap"><img class="recipe-image" src="${recipe.image}" alt="${escapeHtml(recipe.title)}" /><button class="save-button" data-save="${recipe.id}" aria-label="${saved ? 'Remove from saved recipes' : 'Save recipe'}" aria-pressed="${saved}">${saved ? '♥' : '♡'}</button></div>
+      <div class="recipe-card-body"><button class="recipe-title-button" data-recipe="${recipe.id}"><h3>${escapeHtml(recipe.title)}</h3><div class="meta-row"><span class="meta-pill match-pill">${stats.matched.length} of ${recipe.ingredients.length} ingredients</span><span class="meta-pill">${recipe.minutes} min</span><span class="meta-pill">${recipe.calories} cal</span></div></button></div>
+    </article>`;
+  }
+
+  function bindRecipeActions(container) {
+    container.querySelectorAll('[data-recipe]').forEach(button => button.addEventListener('click', () => openRecipe(button.dataset.recipe)));
+    container.querySelectorAll('[data-save]').forEach(button => button.addEventListener('click', event => {
+      event.stopPropagation();
+      toggleSaved(button.dataset.save);
+      renderCurrentRecipeLists();
+    }));
+  }
+
+  function renderResults() {
+    const data = sortedResults();
+    const container = document.getElementById('recipe-results');
+    document.getElementById('results-summary').textContent = `Based on ${state.ingredients.length} confirmed ingredient${state.ingredients.length === 1 ? '' : 's'}. Open a recipe to see what you have and what is missing.`;
+    container.innerHTML = data.length ? data.map(({recipe, stats}) => recipeCard(recipe, stats)).join('') : '<div class="card"><h3>No recipes match this filter</h3><p>Try another filter or edit your ingredient list.</p></div>';
+    bindRecipeActions(container);
+  }
+
+  document.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => {
+    resultFilter = button.dataset.filter;
+    document.querySelectorAll('[data-filter]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+    renderResults();
+  }));
+
+  function toggleSaved(id) {
+    if (state.saved.has(id)) { state.saved.delete(id); showToast('Removed from saved recipes.'); }
+    else { state.saved.add(id); showToast('Recipe saved.'); }
+    saveState();
+  }
+
+  function openRecipe(id) {
+    activeRecipeId = id;
+    const recipe = recipes.find(item => item.id === id);
+    const stats = recipeStats(recipe);
+    const content = document.getElementById('recipe-detail-content');
+    const saved = state.saved.has(id);
+    content.innerHTML = `
+      <div class="detail-hero"><img src="${recipe.image}" alt="${escapeHtml(recipe.title)}" /><button class="floating-back" data-detail-back aria-label="Go back">‹</button><button class="floating-save" data-save-detail="${recipe.id}" aria-label="${saved ? 'Remove from saved recipes' : 'Save recipe'}">${saved ? '♥' : '♡'}</button></div>
+      <div class="eyebrow">${stats.matched.length} of ${recipe.ingredients.length} ingredients available</div>
+      <h2 id="recipe-title">${escapeHtml(recipe.title)}</h2>
+      <p>${escapeHtml(recipe.description)}</p>
+      <div class="meta-row"><span class="meta-pill">${recipe.minutes} min</span><span class="meta-pill">${recipe.calories} cal</span><span class="meta-pill">${recipe.cuisine}</span></div>
+      <div class="detail-section"><h3>Ingredients</h3><ul class="check-list">${recipe.ingredients.map(item => `<li class="${stats.missing.includes(item) ? 'missing' : ''}">${escapeHtml(item)}${stats.missing.includes(item) ? ' <span class="fine-print">— needed</span>' : ''}</li>`).join('')}</ul></div>
+      <div class="detail-section"><h3>Steps</h3><ol class="step-list">${recipe.steps.map(step => `<li>${escapeHtml(step)}</li>`).join('')}</ol></div>
+      ${state.accountEmail ? '' : '<div class="card soft-card" style="margin-top:24px;"><h3>Keep your recipes anywhere</h3><p class="small">Create a free account to sync saved recipes across devices. It is optional.</p><button class="btn btn-secondary" data-go="signup">Create account</button></div>'}
+      <div style="height:24px"></div>`;
+    content.querySelector('[data-detail-back]').addEventListener('click', goBack);
+    content.querySelector('[data-save-detail]').addEventListener('click', () => { toggleSaved(id); openRecipe(id); });
+    content.querySelector('[data-go="signup"]')?.addEventListener('click', () => navigate('signup'));
+    navigate('recipe-detail');
+  }
+
+  function renderExplore() {
+    const query = normalize(document.getElementById('explore-search').value);
+    let list = recipes.filter(recipe => !query || normalize(recipe.title).includes(query) || recipe.ingredients.some(item => normalize(item).includes(query)));
+    if (exploreFilter === 'quick') list = list.filter(recipe => recipe.minutes <= 30);
+    if (exploreFilter === 'vegetarian') list = list.filter(recipe => recipe.vegetarian);
+    const container = document.getElementById('explore-list');
+    container.innerHTML = list.length ? list.map(recipe => recipeCard(recipe)).join('') : '<div class="card"><h3>No recipes found</h3><p>Try a broader search.</p></div>';
+    bindRecipeActions(container);
+  }
+  document.getElementById('explore-search').addEventListener('input', renderExplore);
+  document.querySelectorAll('[data-explore-filter]').forEach(button => button.addEventListener('click', () => {
+    exploreFilter = button.dataset.exploreFilter;
+    document.querySelectorAll('[data-explore-filter]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+    renderExplore();
+  }));
+
+  function renderSaved() {
+    const savedRecipes = recipes.filter(recipe => state.saved.has(recipe.id));
+    const container = document.getElementById('saved-content');
+    if (!savedRecipes.length) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">♡</div><h3>No saved recipes yet</h3><p>Save recipes from results or Explore so you can find them quickly later.</p><button class="btn btn-primary" data-go="explore">Explore recipes</button></div>';
+      return;
+    }
+    container.innerHTML = `<div class="recipe-list">${savedRecipes.map(recipe => recipeCard(recipe)).join('')}</div>`;
+    bindRecipeActions(container);
+  }
+
+  function renderHome() {
+    const query = normalize(document.getElementById('home-search').value);
+    const content = document.getElementById('home-content');
+    if (query) {
+      const matches = recipes.filter(recipe => normalize(recipe.title).includes(query) || recipe.ingredients.some(item => normalize(item).includes(query)));
+      content.innerHTML = `<div class="section-heading"><h3>Search results</h3><span class="small">${matches.length} found</span></div><div class="recipe-list">${matches.map(recipe => recipeCard(recipe)).join('') || '<div class="card"><p>No matches found.</p></div>'}</div>`;
+      bindRecipeActions(content);
+      return;
+    }
+    if (!state.ingredients.length) {
+      content.innerHTML = '<div class="empty-state"><div class="empty-icon">🥕</div><h3>Start with what you have</h3><p>Scan several ingredients or enter them manually to see useful recipe matches.</p><button class="btn btn-primary" data-go="capture">Scan ingredients</button><button class="btn btn-secondary" data-go="explore">Explore all recipes</button></div>';
+      return;
+    }
+    const top = recipes.map(recipe => ({recipe, stats: recipeStats(recipe)})).sort((a,b) => b.stats.percent - a.stats.percent).slice(0,2);
+    content.innerHTML = `<div class="card soft-card" style="margin-top:20px;"><div class="profile-label">Your latest ingredients</div><div class="profile-value">${state.ingredients.map(escapeHtml).join(', ')}</div><button class="text-link" data-go="ingredients" style="padding-left:0;">Review or edit</button></div><div class="section-heading"><h3>Best current matches</h3><button class="text-link" data-go="results">See all</button></div><div class="recipe-list">${top.map(({recipe,stats}) => recipeCard(recipe,stats)).join('')}</div>`;
+    bindRecipeActions(content);
+  }
+  document.getElementById('home-search').addEventListener('input', renderHome);
+
+  function renderProfile() {
+    document.getElementById('profile-experience').textContent = state.experience || 'Not selected';
+    document.getElementById('profile-dietary').textContent = state.dietary.length ? state.dietary.join(', ') : 'None selected';
+    document.getElementById('profile-cuisines').textContent = state.cuisines.length ? state.cuisines.join(', ') : 'No preference';
+    const account = document.getElementById('profile-account');
+    account.innerHTML = state.accountEmail
+      ? `<div class="account-status"><strong>Signed in</strong><span class="small">${escapeHtml(state.accountEmail)}</span></div><div class="stack"><button class="btn btn-secondary" data-go="premium">View Forage Plus</button><button class="btn btn-danger" type="button" data-sign-out>Sign out</button></div>`
+      : '<div class="stack"><button class="btn btn-secondary" data-go="signup">Create or sync account</button><button class="btn btn-secondary" data-go="premium">View Forage Plus</button></div>';
+  }
+
+  function syncAccountUI() {
+    const heroSignin = document.querySelector('.hero-signin');
+    if (heroSignin) heroSignin.hidden = Boolean(state.accountEmail);
+    if (currentScreen === 'profile') renderProfile();
+  }
+
+  function renderCurrentRecipeLists() {
+    if (currentScreen === 'results') renderResults();
+    if (currentScreen === 'explore') renderExplore();
+    if (currentScreen === 'saved') renderSaved();
+    if (currentScreen === 'home') renderHome();
+  }
+
+  document.getElementById('start-trial').addEventListener('click', () => showToast('Trial selection confirmed for this prototype.'));
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+  }
+
+  renderIngredients();
+  renderHome();
+  renderExplore();
+  renderSaved();
+  renderProfile();
+  updateSignupFormState();
+  updateSigninFormState();
+  syncAccountUI();
+  navigate('landing', { push: false });
+})();
+</script>
+</body>
+</html>
